@@ -7,19 +7,20 @@ export function drawRadar(
   const w = canvas.clientWidth || 320;
   const ctx = canvas.getContext("2d")!;
 
-  // 标签先量宽：半径按最宽标签收缩，保证左右标签完整落在画布内
+  // 标签先量宽：侧标签在 ±30° 顶点（横向仅占 cos30°≈0.866），
+  // 按 0.866·(R+26) + 标签宽 ≤ 半宽 反解 R，比按水平轴预留整标签宽更省
   ctx.font = "12px 'Songti SC', 'Noto Serif SC', Georgia, serif";
   const maxLabelW = Math.max(...dims.map(d => ctx.measureText(d.label).width));
-  const R = Math.max(48, w / 2 - 30 - maxLabelW);
-  // 高度随半径走，窄屏不留大片空白
-  const h = Math.round(R * 2 + 110);
+  const R = Math.max(48, Math.round((w / 2 - maxLabelW - 4) / 0.866 - 26));
+  // 高度随半径走：上下各留 32px 给顶/底标签（标签竖向偏移 20 + 半字高 7）
+  const h = Math.round(R * 2 + 64);
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(h * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
 
   const cx = w / 2;
-  const cy = h / 2 + 4;
+  const cy = h / 2;
   const n = dims.length;
   const ang = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
   const pt = (i: number, r: number) => [cx + r * Math.cos(ang(i)), cy + r * Math.sin(ang(i))] as const;

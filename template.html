@@ -26,6 +26,12 @@
     -webkit-font-smoothing: antialiased;
   }
   .wrap { max-width: 390px; margin: 0 auto; padding: 16px 14px 40px; }
+  /* 宽屏：移动优先布局放宽为阅读友好列宽，雷达限宽居中防横向拉大 */
+  @media (min-width: 720px) {
+    .wrap { max-width: 640px; padding: 28px 24px 56px; }
+    #quiz-q { font-size: 19px; }
+    .opt { font-size: 15px; }
+  }
   header { text-align: center; padding: 14px 0 4px; position: relative; }
   h1 { font-size: 22px; font-weight: 600; letter-spacing: 1px; margin: 0; }
   header p { color: var(--dim); font-size: 13px; margin: 6px 0 0; }
@@ -84,6 +90,11 @@
   }
   #panel-class2 { font-size: 13px; color: var(--dim); margin: 0 0 4px; }
   .class-desc { font-size: 13px; color: var(--dim); text-align: left; margin: 8px 0 2px; line-height: 1.65; }
+  .class-guide {
+    font-size: 13px; text-align: left; line-height: 1.65; margin: 10px 0 2px;
+    border-left: 3px solid var(--green); padding-left: 12px;
+  }
+  .class-guide b { color: var(--green); font-weight: 600; }
   .stat-cmt { font-size: 12px; color: var(--dim); margin: -2px 0 10px; line-height: 1.55; }
   .meta-cmt { font-size: 12.5px; margin: 8px 0; line-height: 1.6; }
   .meta-cmt b { font-size: 12px; color: var(--dim); font-weight: 600; }
@@ -95,7 +106,8 @@
   .stat-bar { flex: 1; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
   .stat-fill { height: 100%; background: var(--blue); border-radius: 4px; }
   .stat-val { flex: 0 0 28px; text-align: right; font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
-  canvas#radar { width: 100%; height: 300px; display: block; }
+  /* 高度 auto：跟随 JS 写入的画布比例，雷达保持正多边形不被拉伸 */
+  canvas#radar { width: 100%; max-width: 400px; height: auto; display: block; margin: 0 auto; }
   details { border-bottom: 1px dashed var(--line); padding: 5px 0; }
   details:last-child { border-bottom: none; }
   summary { font-size: 13.5px; cursor: pointer; list-style-position: inside; }
@@ -118,6 +130,21 @@
     border: 1px solid var(--line); background: var(--card); border-radius: 6px; cursor: pointer;
   }
   #panel-retake:hover { border-color: var(--ink); }
+
+  /* 全职业图鉴：两列小卡，窄屏自动单列 */
+  #gallery-sec { padding: 8px 16px; }
+  #gallery-sec summary { font-weight: 600; }
+  .gallery-hint { font-size: 12px; color: var(--dim); margin: 6px 0 10px; }
+  #gallery-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+  .g-item { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+  .g-item .g-name { font-size: 14px; font-weight: 700; color: var(--gold); letter-spacing: .5px; }
+  .g-item .g-tag {
+    display: inline-block; font-size: 10.5px; color: #fff; background: var(--red);
+    border-radius: 999px; padding: 0 8px; margin-left: 6px; vertical-align: 1.5px;
+  }
+  .g-item .g-short { font-size: 12.5px; margin: 3px 0 2px; line-height: 1.55; }
+  .g-item .g-cond { font-size: 11.5px; color: var(--dim); font-family: ui-monospace, Menlo, monospace; }
+  .g-item.cur { border-color: var(--red); background: #faf1ee; }
   footer { text-align: center; color: var(--dim); font-size: 12px; margin-top: 32px; }
 </style>
 </head>
@@ -152,6 +179,7 @@
       <div id="panel-class"></div>
       <div id="panel-class2"></div>
       <p id="panel-class-desc" class="class-desc"></p>
+      <p id="panel-class-guide" class="class-guide"></p>
     </div>
     <div class="panel-card">
       <h3 class="sec" data-i18n="panel.attrs">属性</h3>
@@ -176,6 +204,15 @@
       <p class="hint side" id="panel-side"></p>
     </div>
     <button id="panel-retake" data-i18n="panel.retake">← 重新开号</button>
+  </section>
+
+  <!-- 全职业图鉴：答题页/面板页均可见 -->
+  <section id="gallery-sec" class="panel-card">
+    <details id="gallery">
+      <summary data-i18n="gallery.title">全职业图鉴</summary>
+      <p class="gallery-hint" data-i18n="gallery.hint">8 个职业。六维最高且 ≥60 解锁对应职业；否则按形态解锁隐藏职业。</p>
+      <div id="gallery-list"></div>
+    </details>
   </section>
 
   <footer data-i18n="app.footer">life-mmo · 纯静态单文件 · 无网络请求</footer>

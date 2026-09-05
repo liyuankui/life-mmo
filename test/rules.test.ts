@@ -53,15 +53,21 @@ describe("F1 规则库完整性", () => {
     }
   });
 
-  test("称号规则覆盖全部六维 + 兜底/解读文案存在", () => {
+  test("称号规则覆盖全部六维 + 兜底/解读/攻略/图鉴短句文案存在", () => {
     expect(TITLE_RULES.length).toBe(METAS.length);
     for (const m of METAS) expect(TITLE_RULES.some((r) => r.top === m)).toBe(true);
-    for (const key of Object.values(FALLBACK_TITLES)) {
-      expect(zhDict[`title.${key}` as MsgKey]).toBeTruthy();
+    const allKeys = [...TITLE_RULES.map((r) => r.key), ...Object.values(FALLBACK_TITLES)];
+    expect(new Set(allKeys).size).toBe(8); // 全职业图鉴：6 + 2 隐藏
+    for (const key of allKeys) {
+      for (const suffix of ["", ".desc", ".guide", ".short"]) {
+        expect(zhDict[`title.${key}${suffix}` as MsgKey]).toBeTruthy();
+        expect(enDict[`title.${key}${suffix}` as MsgKey]).toBeTruthy();
+      }
     }
-    for (const r of TITLE_RULES) {
-      expect(zhDict[`title.${r.key}.desc` as MsgKey]).toBeTruthy();
-      expect(enDict[`title.${r.key}.desc` as MsgKey]).toBeTruthy();
+    for (const key of ["gallery.title", "gallery.hint", "gallery.cur", "gallery.unlock",
+      "gallery.unlock.casualFarmer", "gallery.unlock.allRounder", "panel.guide"]) {
+      expect(zhDict[key as MsgKey]).toBeTruthy();
+      expect(enDict[key as MsgKey]).toBeTruthy();
     }
   });
 
