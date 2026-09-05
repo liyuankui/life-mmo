@@ -48,8 +48,8 @@ export function drawRadar(
   // 数据面
   ctx.beginPath();
   for (let i = 0; i <= n; i++) {
-    const v = dims[i % n].value / 100; // 0-60 → 截断基线 40-60 更可读：映射 40-60 → 0.15-1
-    const norm = Math.max(0.15, Math.min(1, 0.15 + (v - 0.4) / 0.2 * 0.85));
+    // 数值范围 30-90 → 归一化 0.1-1
+    const norm = Math.max(0.1, Math.min(1, (dims[i % n].value - 30) / 60));
     const [x, y] = pt(i % n, R * norm);
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
   }

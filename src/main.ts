@@ -1,7 +1,7 @@
-/** life-mmo 入口：F2 答题 → F3 面板 → F4 注解 → F5 双语 */
+/** life-mmo 入口：F2 答题 → F3 面板（v0.2 叙事版）→ F4 注解 → F5 双语 */
 import { QUESTIONS } from "./rules/questions";
 import { computeProfile } from "./rules/engine";
-import { ATTRS, METAS } from "./rules/types";
+import { ATTRS, METAS, FX_BUFF_AT, FX_DEBUFF_AT } from "./rules/types";
 import type { Attr, Meta } from "./rules/types";
 import { FLAVOR_KEYS } from "./rules/buffs";
 import { t, detectLang, setLang, getLang } from "./i18n";
@@ -96,7 +96,14 @@ document.getElementById("quiz-next")!.addEventListener("click", () => {
   }
 });
 
-// ---- F3 面板 ----
+/** 属性三档点评：高 ≥65 / 低 ≤38 / 其余中 */
+function attrTier(v: number): "hi" | "mid" | "lo" {
+  if (v >= FX_BUFF_AT) return "hi";
+  if (v <= FX_DEBUFF_AT) return "lo";
+  return "mid";
+}
+
+// ---- F3 面板（v0.2 叙事版） ----
 function renderPanel() {
   inPanel = true;
   if (answers.some((a) => a === null)) {
@@ -111,7 +118,7 @@ function renderPanel() {
 
   document.getElementById("panel-seed")!.textContent = `${t("panel.seed")}: #${p.seed}`;
 
-  // 称号
+  // 称号 + 解读段
   document.getElementById("panel-class")!.textContent = t(p.titleKey as MsgKey);
   const elClass2 = document.getElementById("panel-class2")!;
   if (p.titleKey2) {
@@ -120,11 +127,15 @@ function renderPanel() {
   } else {
     elClass2.hidden = true;
   }
+  const descBase = p.titleKey.replace(/^title\./, "");
+  document.getElementById("panel-class-desc")!.textContent =
+    t(`title.${descBase}.desc` as MsgKey);
 
-  // 属性条
+  // 属性条 + 每属性一句点评
   const attrBox = document.getElementById("panel-attrs")!;
   attrBox.innerHTML = "";
   for (const k of ATTRS) {
+    const v = p.attrs[k as Attr];
     const row = document.createElement("div");
     row.className = "stat";
     const label = document.createElement("span");
@@ -134,16 +145,20 @@ function renderPanel() {
     bar.className = "stat-bar";
     const fill = document.createElement("div");
     fill.className = "stat-fill";
-    fill.style.width = `${p.attrs[k as Attr]}%`;
+    fill.style.width = `${v}%`;
     bar.appendChild(fill);
     const val = document.createElement("span");
     val.className = "stat-val";
-    val.textContent = String(p.attrs[k as Attr]);
+    val.textContent = String(v);
     row.append(label, bar, val);
     attrBox.appendChild(row);
+    const cmt = document.createElement("p");
+    cmt.className = "stat-cmt";
+    cmt.textContent = t(`attr.${k}.${attrTier(v)}` as MsgKey);
+    attrBox.appendChild(cmt);
   }
 
-  // 六维雷达 + 可展开注解列表
+  // 六维雷达 + 注解 + 最高/最低维点评
   drawRadar(document.getElementById("radar") as HTMLCanvasElement, METAS.map((m) => ({
     label: t(`meta.${m}` as MsgKey),
     value: p.metas[m as Meta],
@@ -161,6 +176,11 @@ function renderPanel() {
     d.append(sum, note);
     metaList.appendChild(d);
   }
+  const cmtBox = document.getElementById("panel-meta-cmts")!;
+  cmtBox.innerHTML = "";
+  cmtBox.append(makeCmt(t("panel.metaTop"), t(`meta.${p.metaTop}.hi` as MsgKey), "top"));
+  const lowM = p.hintMetas[0];
+  cmtBox.append(makeCmt(t("panel.metaLow"), t(`meta.${lowM}.lo` as MsgKey), "low"));
 
   // Buff/Debuff（含注解）
   const fxBox = document.getElementById("panel-fx")!;
@@ -177,11 +197,29 @@ function renderPanel() {
     fxBox.appendChild(d);
   }
 
-  // Roguelike 风味语 + 主线提示
-  document.getElementById("panel-flavor")!.textContent =
-    t(`flavor.${FLAVOR_KEYS[p.flavorIdx]}` as MsgKey);
-  document.getElementById("panel-hint")!.textContent =
-    t(`hint.${p.hintMeta}` as MsgKey);
+  // 冒险日志 3 行（seed 确定性）
+  const flBox = document.getElementById("panel-flavor")!;
+  flBox.innerHTML = "";
+  for (const fi of p.flavorIdx) {
+    const li = document.createElement("p");
+    li.className = "flavor";
+    li.textContent = t(`flavor.${FLAVOR_KEYS[fi]}` as MsgKey);
+    flBox.appendChild(li);
+  }
+
+  // 任务提示：主线①②（最低两维）+ 支线（最低属性）
+  document.getElementById("panel-hint1")!.textContent = t(`hint.${p.hintMetas[0]}` as MsgKey);
+  document.getElementById("panel-hint2")!.textContent = t(`hint2.${p.hintMetas[1]}` as MsgKey);
+  document.getElementById("panel-side")!.textContent = t(`side.${p.sideAttr}` as MsgKey);
+}
+
+function makeCmt(tag: string, text: string, cls: string): HTMLElement {
+  const p = document.createElement("p");
+  p.className = `meta-cmt ${cls}`;
+  const b = document.createElement("b");
+  b.textContent = `${tag}：`;
+  p.append(b, document.createTextNode(text));
+  return p;
 }
 
 document.getElementById("panel-retake")!.addEventListener("click", () => {

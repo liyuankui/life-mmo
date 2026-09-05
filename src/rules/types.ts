@@ -17,7 +17,14 @@ export interface QuestionDef {
   options: { id: string; eff: Effect }[]; // "q1a"...
 }
 
-/** 基线 50，±10 内浮动（AI 盲区约束：不让人感觉被贬低） */
+/** 基线 50；区分度重做：attr ×6 clamp 25-95，meta ×5 clamp 30-90 */
 export const BASELINE = 50;
-export const CLAMP_LO = 40;
-export const CLAMP_HI = 60;
+export const ATTR_SCALE = 6;
+export const META_SCALE = 5;
+export const ATTR_LO = 25;
+export const ATTR_HI = 95;
+export const META_LO = 30;
+export const META_HI = 90;
+/** Buff/Debuff 触发阈值（联动新范围） */
+export const FX_BUFF_AT = 65;
+export const FX_DEBUFF_AT = 38;

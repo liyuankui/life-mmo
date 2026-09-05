@@ -3,7 +3,7 @@ import { QUESTIONS } from "../src/rules/questions";
 import { TITLE_RULES, FALLBACK_TITLES } from "../src/rules/titles";
 import { FX_RULES, FLAVOR_KEYS } from "../src/rules/buffs";
 import { computeProfile } from "../src/rules/engine";
-import { ATTRS, METAS, CLAMP_LO, CLAMP_HI } from "../src/rules/types";
+import { ATTRS, METAS, ATTR_LO, ATTR_HI, META_LO, META_HI, FX_BUFF_AT, FX_DEBUFF_AT } from "../src/rules/types";
 import { zhDict, enDict } from "../src/i18n";
 import type { MsgKey } from "../src/i18n";
 
@@ -23,7 +23,7 @@ describe("F1 规则库完整性", () => {
     }
   });
 
-  test("分值合法：attr/meta 微调在 ±3 内（保证 ±10 总浮动不被单题击穿）", () => {
+  test("分值合法：attr/meta 微调在 ±3 内", () => {
     for (const q of QUESTIONS) {
       for (const o of q.options) {
         for (const k of ATTRS) {
@@ -44,23 +44,39 @@ describe("F1 规则库完整性", () => {
     }
   });
 
-  test("称号规则覆盖全部六维 + 兜底称号存在", () => {
+  test("采样约束：每个属性至少 2 题喂分（区分度前提）", () => {
+    for (const a of ATTRS) {
+      const feeders = QUESTIONS.filter((q) =>
+        q.options.some((o) => (o.eff.attr[a] ?? 0) !== 0)
+      );
+      expect(feeders.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  test("称号规则覆盖全部六维 + 兜底/解读文案存在", () => {
     expect(TITLE_RULES.length).toBe(METAS.length);
     for (const m of METAS) expect(TITLE_RULES.some((r) => r.top === m)).toBe(true);
     for (const key of Object.values(FALLBACK_TITLES)) {
       expect(zhDict[`title.${key}` as MsgKey]).toBeTruthy();
     }
+    for (const r of TITLE_RULES) {
+      expect(zhDict[`title.${r.key}.desc` as MsgKey]).toBeTruthy();
+      expect(enDict[`title.${r.key}.desc` as MsgKey]).toBeTruthy();
+    }
   });
 
-  test("Buff/Debuff 库数量对称且阈值对称（hi + lo = 100）", () => {
+  test("Buff/Debuff 库数量对称且阈值联动新范围（65/38）", () => {
     const buffs = FX_RULES.filter((r) => r.kind === "buff");
     const debuffs = FX_RULES.filter((r) => r.kind === "debuff");
     expect(buffs.length).toBe(debuffs.length);
-    for (const r of FX_RULES) expect(r.hi + r.lo).toBe(100);
+    for (const r of FX_RULES) {
+      expect(r.hi).toBe(FX_BUFF_AT);
+      expect(r.lo).toBe(FX_DEBUFF_AT);
+    }
   });
 });
 
-describe("映射确定性与边界", () => {
+describe("映射确定性与区分度（v0.2）", () => {
   const optLetter = (i: number, qIdx: number) =>
     QUESTIONS[qIdx].options[i % QUESTIONS[qIdx].options.length].id;
 
@@ -68,17 +84,17 @@ describe("映射确定性与边界", () => {
     const answers = QUESTIONS.map((_, i) => optLetter(0, i)); // 全选 A
     const p = computeProfile(answers);
     // 独立复算（数值诚实）：直接从题库原始数据重算，不经过引擎
-    const expA = Object.fromEntries(ATTRS.map((k) => [k, 50])) as Record<string, number>;
-    const expM = Object.fromEntries(METAS.map((k) => [k, 50])) as Record<string, number>;
+    const expA = Object.fromEntries(ATTRS.map((k) => [k, 0])) as Record<string, number>;
+    const expM = Object.fromEntries(METAS.map((k) => [k, 0])) as Record<string, number>;
     QUESTIONS.forEach((q, i) => {
       const opt = q.options.find((o) => o.id === answers[i])!;
       for (const k of ATTRS) expA[k] += opt.eff.attr[k] ?? 0;
       for (const k of METAS) expM[k] += opt.eff.meta[k] ?? 0;
     });
     for (const k of ATTRS)
-      expect(p.attrs[k]).toBe(Math.max(CLAMP_LO, Math.min(CLAMP_HI, expA[k])));
+      expect(p.attrs[k]).toBe(Math.max(ATTR_LO, Math.min(ATTR_HI, 50 + expA[k] * 6)));
     for (const k of METAS)
-      expect(p.metas[k]).toBe(Math.max(CLAMP_LO, Math.min(CLAMP_HI, expM[k])));
+      expect(p.metas[k]).toBe(Math.max(META_LO, Math.min(META_HI, 50 + expM[k] * 5)));
   });
 
   test("同答案同 seed：两次计算结果完全一致", () => {
@@ -86,23 +102,50 @@ describe("映射确定性与边界", () => {
     expect(computeProfile(a)).toEqual(computeProfile(a));
   });
 
-  test("全最低分 / 全最高分不溢出（40-60 clamp）", () => {
+  test("全最低分 / 全最高分不溢出（attr 25-95 / meta 30-90 clamp）", () => {
     for (const pick of [0, 3]) {
       const answers = QUESTIONS.map((_, i) => optLetter(pick, i));
       const p = computeProfile(answers);
       for (const k of ATTRS) {
-        expect(p.attrs[k]).toBeGreaterThanOrEqual(CLAMP_LO);
-        expect(p.attrs[k]).toBeLessThanOrEqual(CLAMP_HI);
+        expect(p.attrs[k]).toBeGreaterThanOrEqual(ATTR_LO);
+        expect(p.attrs[k]).toBeLessThanOrEqual(ATTR_HI);
       }
       for (const k of METAS) {
-        expect(p.metas[k]).toBeGreaterThanOrEqual(CLAMP_LO);
-        expect(p.metas[k]).toBeLessThanOrEqual(CLAMP_HI);
+        expect(p.metas[k]).toBeGreaterThanOrEqual(META_LO);
+        expect(p.metas[k]).toBeLessThanOrEqual(META_HI);
       }
       expect(p.fxKeys.length).toBeGreaterThanOrEqual(2);
       expect(p.fxKeys.length).toBeLessThanOrEqual(4);
       expect(p.titleKey).toStartWith("title.");
-      expect(p.flavorIdx).toBeLessThan(FLAVOR_KEYS.length);
+      // 冒险日志 3 行且不重复
+      expect(new Set(p.flavorIdx).size).toBe(3);
     }
+  });
+
+  test("区分度断言：全最高 vs 全最低，每个属性差 ≥40", () => {
+    const hi = computeProfile(QUESTIONS.map((_, i) => optLetter(0, i)));
+    const lo = computeProfile(QUESTIONS.map((_, i) => optLetter(3, i)));
+    for (const k of ATTRS) {
+      expect(hi.attrs[k] - lo.attrs[k]).toBeGreaterThanOrEqual(40);
+    }
+  });
+
+  test("区分度断言：随机组合面板有起伏且互不相同（不会千篇一律）", () => {
+    let s = 7;
+    const rnd = () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const seen = new Set<string>();
+    for (let n = 0; n < 20; n++) {
+      const answers = QUESTIONS.map((q, i) => optLetter(Math.floor(rnd() * 4), i));
+      const p = computeProfile(answers);
+      const vals = ATTRS.map((k) => p.attrs[k]);
+      const mean = vals.reduce((a, b) => a + b) / vals.length;
+      const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
+      expect(sd).toBeGreaterThan(5);
+      // 单面板内属性极差 ≥15（有层次，不是平的）
+      expect(Math.max(...vals) - Math.min(...vals)).toBeGreaterThanOrEqual(15);
+      seen.add(vals.join(","));
+    }
+    expect(seen.size).toBe(20); // 20 组随机答案 → 20 张不同面板
   });
 
   test("非法选项 id 拒绝", () => {
@@ -112,8 +155,7 @@ describe("映射确定性与边界", () => {
     expect(() => computeProfile(["q1a"])).toThrow(); // 数量不符
   });
 
-  test("称号规则覆盖：200 组伪随机答案组合均有称号", () => {
-    // 确定性 LCG，可复现
+  test("称号规则覆盖：200 组伪随机答案组合均有称号且有解读", () => {
     let s = 42;
     const rnd = () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
     for (let n = 0; n < 200; n++) {
@@ -121,6 +163,7 @@ describe("映射确定性与边界", () => {
       const p = computeProfile(answers);
       expect(p.titleKey.startsWith("title.")).toBe(true);
       expect(zhDict[p.titleKey as MsgKey]).toBeTruthy();
+      expect(zhDict[`${p.titleKey}.desc` as MsgKey]).toBeTruthy();
     }
   });
 });
@@ -141,19 +184,25 @@ describe("i18n key 集一致（F5）", () => {
     }
   });
 
-  test("六维 / 属性 / 注解 / Buff/Debuff / 风味语 / 主线提示 key 双语齐全", () => {
+  test("六维/属性/注解/Buff/风味语/任务提示全量 key 双语齐全（叙事版）", () => {
     for (const m of METAS) {
-      for (const suffix of ["", ".note"]) {
+      for (const suffix of ["", ".note", ".hi", ".lo"]) {
         const k = `meta.${m}${suffix}` as MsgKey;
         expect(zhDict[k]).toBeTruthy();
         expect(enDict[k]).toBeTruthy();
       }
       expect(zhDict[`hint.${m}` as MsgKey]).toBeTruthy();
-      expect(enDict[`hint.${m}` as MsgKey]).toBeTruthy();
+      expect(zhDict[`hint2.${m}` as MsgKey]).toBeTruthy();
+      expect(enDict[`hint2.${m}` as MsgKey]).toBeTruthy();
     }
     for (const a of ATTRS) {
-      expect(zhDict[`attr.${a}` as MsgKey]).toBeTruthy();
-      expect(enDict[`attr.${a}` as MsgKey]).toBeTruthy();
+      for (const suffix of ["", ".hi", ".mid", ".lo"]) {
+        const k = `attr.${a}${suffix}` as MsgKey;
+        expect(zhDict[k]).toBeTruthy();
+        expect(enDict[k]).toBeTruthy();
+      }
+      expect(zhDict[`side.${a}` as MsgKey]).toBeTruthy();
+      expect(enDict[`side.${a}` as MsgKey]).toBeTruthy();
     }
     for (const r of FX_RULES) {
       expect(zhDict[`fx.${r.key}` as MsgKey]).toBeTruthy();
@@ -172,7 +221,7 @@ describe("F6 产物零外链", () => {
     expect(file.exists()).resolves.toBe(true);
     const html = await file.text();
     expect(html).toContain("life-mmo");
-    // 所有 src=/href= 引用均非外链（data: 允许，无 http(s)://、无 //、无外链文件）
+    // 所有 src=/href= 引用均非外链（无 http(s)://、无 //、无外链文件）
     const refs = [...html.matchAll(/(?:src|href)\s*=\s*"([^"]+)"/g)].map((m) => m[1]);
     expect(refs.length).toBe(0); // 单文件：不应引用任何外部资源
     expect(html).not.toMatch(/https?:\/\//);

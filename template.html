@@ -83,6 +83,12 @@
     margin: 10px 0 2px; letter-spacing: 1px;
   }
   #panel-class2 { font-size: 13px; color: var(--dim); margin: 0 0 4px; }
+  .class-desc { font-size: 13px; color: var(--dim); text-align: left; margin: 8px 0 2px; line-height: 1.65; }
+  .stat-cmt { font-size: 12px; color: var(--dim); margin: -2px 0 10px; line-height: 1.55; }
+  .meta-cmt { font-size: 12.5px; margin: 8px 0; line-height: 1.6; }
+  .meta-cmt b { font-size: 12px; color: var(--dim); font-weight: 600; }
+  .meta-cmt.top b { color: var(--green); }
+  .meta-cmt.low b { color: var(--red); }
   h3.sec { font-size: 13px; color: var(--dim); margin: 14px 0 8px; letter-spacing: 1px; font-weight: 600; }
   .stat { display: flex; align-items: center; gap: 8px; margin: 7px 0; }
   .stat-label { flex: 0 0 52px; font-size: 13px; }
@@ -98,13 +104,14 @@
   details.fx-item.buff summary::marker { color: var(--green); }
   details.fx-item.debuff summary::marker { color: var(--red); }
   .flavor {
-    font-size: 13px; color: var(--dim); font-style: italic;
+    font-size: 12.5px; color: var(--dim); font-style: italic;
     border-left: 3px solid var(--gold); padding-left: 12px; margin: 10px 0;
   }
   .hint {
-    font-size: 13.5px;
+    font-size: 13px;
     border-left: 3px solid var(--blue); padding-left: 12px; margin: 10px 0 4px;
   }
+  .hint.side { border-left-color: var(--green); }
   #panel-retake {
     display: block; margin: 16px auto 0;
     font: inherit; font-size: 14px; padding: 6px 18px;
@@ -119,7 +126,7 @@
   <header>
     <button id="lang-toggle" data-i18n="lang.toggle">EN</button>
     <h1 data-i18n="app.title">地球 Online · 角色面板</h1>
-    <p data-i18n="app.subtitle">答 11 道题，生成你的游戏风人生角色面板</p>
+    <p data-i18n="app.subtitle">答 12 道题，生成你的游戏风人生角色面板</p>
   </header>
   <p class="disclaimer" data-i18n="app.disclaimer">游戏化自评，非测评</p>
 
@@ -144,6 +151,7 @@
       <div id="panel-seed"></div>
       <div id="panel-class"></div>
       <div id="panel-class2"></div>
+      <p id="panel-class-desc" class="class-desc"></p>
     </div>
     <div class="panel-card">
       <h3 class="sec" data-i18n="panel.attrs">属性</h3>
@@ -152,6 +160,7 @@
     <div class="panel-card">
       <h3 class="sec" data-i18n="panel.metas">高玩六维</h3>
       <canvas id="radar"></canvas>
+      <div id="panel-meta-cmts"></div>
       <div id="panel-metas"></div>
     </div>
     <div class="panel-card">
@@ -160,9 +169,11 @@
     </div>
     <div class="panel-card">
       <h3 class="sec" data-i18n="panel.flavor">冒险日志</h3>
-      <p class="flavor" id="panel-flavor"></p>
-      <h3 class="sec" data-i18n="panel.hint">主线提示</h3>
-      <p class="hint" id="panel-hint"></p>
+      <div id="panel-flavor"></div>
+      <h3 class="sec" data-i18n="panel.hint">任务提示</h3>
+      <p class="hint" id="panel-hint1"></p>
+      <p class="hint" id="panel-hint2"></p>
+      <p class="hint side" id="panel-side"></p>
     </div>
     <button id="panel-retake" data-i18n="panel.retake">← 重新开号</button>
   </section>
