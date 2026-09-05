@@ -98,7 +98,7 @@ const zh = {
   "meta.regen": "回血抗性",
   "meta.rng": "RNG 操纵",
   "meta.guild": "公会运营",
-  "meta.grind": "Grinding 纪律",
+  "meta.grind": "刷级纪律",
 
   "meta.metaVersion.note": "高玩机制：读懂版本（meta）比闷头练级值钱——世界规则会变，先看懂再用力。",
   "meta.minmax.note": "高玩机制：min-maxing——把有限点数（时间与注意力）集中投给收益最高的 build。",

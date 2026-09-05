@@ -5,10 +5,16 @@ export function drawRadar(
 ) {
   const dpr = Math.min(window.devicePixelRatio || 1, 4);
   const w = canvas.clientWidth || 320;
-  const h = 300;
+  const ctx = canvas.getContext("2d")!;
+
+  // 标签先量宽：半径按最宽标签收缩，保证左右标签完整落在画布内
+  ctx.font = "12px 'Songti SC', 'Noto Serif SC', Georgia, serif";
+  const maxLabelW = Math.max(...dims.map(d => ctx.measureText(d.label).width));
+  const R = Math.max(48, w / 2 - 30 - maxLabelW);
+  // 高度随半径走，窄屏不留大片空白
+  const h = Math.round(R * 2 + 110);
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(h * dpr);
-  const ctx = canvas.getContext("2d")!;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
 
@@ -17,11 +23,6 @@ export function drawRadar(
   const n = dims.length;
   const ang = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
   const pt = (i: number, r: number) => [cx + r * Math.cos(ang(i)), cy + r * Math.sin(ang(i))] as const;
-
-  // 标签先量宽：半径按最宽标签收缩，保证左右标签完整落在画布内
-  ctx.font = "12px 'Songti SC', 'Noto Serif SC', Georgia, serif";
-  const maxLabelW = Math.max(...dims.map(d => ctx.measureText(d.label).width));
-  const R = Math.max(48, Math.min(h / 2 - 44, w / 2 - 30 - maxLabelW));
 
   // 网格（3 圈）
   ctx.strokeStyle = "#d8d4cc";
