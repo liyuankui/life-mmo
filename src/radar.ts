@@ -14,10 +14,14 @@ export function drawRadar(
 
   const cx = w / 2;
   const cy = h / 2 + 4;
-  const R = Math.min(w, h) / 2 - 44; // 留标签空间
   const n = dims.length;
   const ang = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
   const pt = (i: number, r: number) => [cx + r * Math.cos(ang(i)), cy + r * Math.sin(ang(i))] as const;
+
+  // 标签先量宽：半径按最宽标签收缩，保证左右标签完整落在画布内
+  ctx.font = "12px 'Songti SC', 'Noto Serif SC', Georgia, serif";
+  const maxLabelW = Math.max(...dims.map(d => ctx.measureText(d.label).width));
+  const R = Math.max(48, Math.min(h / 2 - 44, w / 2 - 30 - maxLabelW));
 
   // 网格（3 圈）
   ctx.strokeStyle = "#d8d4cc";
