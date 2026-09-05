@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>地球 Online · 角色面板</title>
+<style>
+  :root {
+    --ink: #2b2b2b;
+    --dim: #777;
+    --line: #e3e0da;
+    --red: #c45a4a;
+    --blue: #4a6fa5;
+    --green: #5a8a5a;
+    --gold: #a8862f;
+    --bg: #faf9f6;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Songti SC", "Noto Serif SC", Georgia, serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 390px; margin: 0 auto; padding: 16px 14px 40px; }
+  header { text-align: center; padding: 14px 0 4px; position: relative; }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: 1px; margin: 0; }
+  header p { color: var(--dim); font-size: 13px; margin: 6px 0 0; }
+  #lang-toggle {
+    position: absolute; top: 12px; right: 0;
+    font: inherit; font-size: 13px;
+    padding: 3px 12px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  #lang-toggle:hover { border-color: var(--ink); }
+  .disclaimer {
+    text-align: center; font-size: 11.5px; color: var(--dim);
+    background: var(--card); border: 1px dashed var(--line); border-radius: 999px;
+    padding: 3px 12px; margin: 10px auto 0; width: fit-content; max-width: 100%;
+  }
+
+  /* F2 答题 */
+  .progress-wrap { margin: 16px 0 10px; }
+  .progress-meta { font-size: 12px; color: var(--dim); margin-bottom: 4px; }
+  .progress-track { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  #quiz-progress-bar { height: 100%; width: 0; background: var(--red); transition: width .2s; }
+  #quiz-q { font-size: 17px; font-weight: 600; margin: 14px 0 12px; }
+  #quiz-opts { display: flex; flex-direction: column; gap: 8px; }
+  .opt {
+    font: inherit; font-size: 14.5px; text-align: left; line-height: 1.5;
+    padding: 10px 14px;
+    border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card); color: var(--ink); cursor: pointer;
+    transition: border-color .12s;
+  }
+  .opt:hover { border-color: var(--ink); }
+  .opt.selected { border-color: var(--red); background: #faf1ee; }
+  .quiz-nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
+  .quiz-nav button {
+    font: inherit; font-size: 14px; padding: 6px 16px;
+    border: 1px solid var(--line); background: var(--card); border-radius: 6px; cursor: pointer;
+  }
+  .quiz-nav button:disabled { opacity: .35; cursor: default; }
+  #quiz-next:not(:disabled) { border-color: var(--ink); background: var(--ink); color: #fff; }
+
+  /* F3 面板 */
+  .panel-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; margin: 12px 0;
+  }
+  .panel-head { text-align: center; }
+  .panel-head h2 { font-size: 16px; margin: 0 0 2px; letter-spacing: 2px; }
+  #panel-seed { font-size: 11.5px; color: var(--dim); font-family: ui-monospace, Menlo, monospace; }
+  #panel-class {
+    font-size: 19px; font-weight: 700; color: var(--gold);
+    margin: 10px 0 2px; letter-spacing: 1px;
+  }
+  #panel-class2 { font-size: 13px; color: var(--dim); margin: 0 0 4px; }
+  h3.sec { font-size: 13px; color: var(--dim); margin: 14px 0 8px; letter-spacing: 1px; font-weight: 600; }
+  .stat { display: flex; align-items: center; gap: 8px; margin: 7px 0; }
+  .stat-label { flex: 0 0 52px; font-size: 13px; }
+  .stat-bar { flex: 1; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+  .stat-fill { height: 100%; background: var(--blue); border-radius: 4px; }
+  .stat-val { flex: 0 0 28px; text-align: right; font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
+  canvas#radar { width: 100%; height: 300px; display: block; }
+  details { border-bottom: 1px dashed var(--line); padding: 5px 0; }
+  details:last-child { border-bottom: none; }
+  summary { font-size: 13.5px; cursor: pointer; list-style-position: inside; }
+  summary::marker { color: var(--dim); }
+  .note { font-size: 12.5px; color: var(--dim); margin: 4px 0 2px 18px; }
+  details.fx-item.buff summary::marker { color: var(--green); }
+  details.fx-item.debuff summary::marker { color: var(--red); }
+  .flavor {
+    font-size: 13px; color: var(--dim); font-style: italic;
+    border-left: 3px solid var(--gold); padding-left: 12px; margin: 10px 0;
+  }
+  .hint {
+    font-size: 13.5px;
+    border-left: 3px solid var(--blue); padding-left: 12px; margin: 10px 0 4px;
+  }
+  #panel-retake {
+    display: block; margin: 16px auto 0;
+    font: inherit; font-size: 14px; padding: 6px 18px;
+    border: 1px solid var(--line); background: var(--card); border-radius: 6px; cursor: pointer;
+  }
+  #panel-retake:hover { border-color: var(--ink); }
+  footer { text-align: center; color: var(--dim); font-size: 12px; margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <button id="lang-toggle" data-i18n="lang.toggle">EN</button>
+    <h1 data-i18n="app.title">地球 Online · 角色面板</h1>
+    <p data-i18n="app.subtitle">答 11 道题，生成你的游戏风人生角色面板</p>
+  </header>
+  <p class="disclaimer" data-i18n="app.disclaimer">游戏化自评，非测评</p>
+
+  <!-- F2 答题 -->
+  <section id="view-quiz">
+    <div class="progress-wrap">
+      <div class="progress-meta" id="quiz-progress-num"></div>
+      <div class="progress-track"><div id="quiz-progress-bar"></div></div>
+    </div>
+    <p id="quiz-q"></p>
+    <div id="quiz-opts"></div>
+    <div class="quiz-nav">
+      <button id="quiz-back" data-i18n="quiz.back">← 上一题</button>
+      <button id="quiz-next" data-i18n="quiz.next">下一题 →</button>
+    </div>
+  </section>
+
+  <!-- F3/F4 面板 -->
+  <section id="view-panel" hidden>
+    <div class="panel-card panel-head">
+      <h2 data-i18n="panel.title">角色面板</h2>
+      <div id="panel-seed"></div>
+      <div id="panel-class"></div>
+      <div id="panel-class2"></div>
+    </div>
+    <div class="panel-card">
+      <h3 class="sec" data-i18n="panel.attrs">属性</h3>
+      <div id="panel-attrs"></div>
+    </div>
+    <div class="panel-card">
+      <h3 class="sec" data-i18n="panel.metas">高玩六维</h3>
+      <canvas id="radar"></canvas>
+      <div id="panel-metas"></div>
+    </div>
+    <div class="panel-card">
+      <h3 class="sec" data-i18n="panel.fx">当前状态</h3>
+      <div id="panel-fx"></div>
+    </div>
+    <div class="panel-card">
+      <h3 class="sec" data-i18n="panel.flavor">冒险日志</h3>
+      <p class="flavor" id="panel-flavor"></p>
+      <h3 class="sec" data-i18n="panel.hint">主线提示</h3>
+      <p class="hint" id="panel-hint"></p>
+    </div>
+    <button id="panel-retake" data-i18n="panel.retake">← 重新开号</button>
+  </section>
+
+  <footer data-i18n="app.footer">life-mmo · 纯静态单文件 · 无网络请求</footer>
+</div>
+<script>
+/*__SCRIPT__*/
+</script>
+</body>
+</html>

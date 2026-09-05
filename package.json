@@ -1,0 +1,11 @@
+{
+  "name": "life-mmo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run scripts/dev.ts",
+    "build": "bun run scripts/build.ts",
+    "test": "bun test"
+  }
+}
